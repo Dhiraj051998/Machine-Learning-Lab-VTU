@@ -27,16 +27,15 @@ print('Size of dataset is : ', dataset_size)
 train_size = int(0.7 * dataset_size)  # 70 % as test data
 
 print(train_size)
-X_train = dataset[:500]
-X_test = dataset[500:]
-# X_train = []
-# X_test = dataset.copy()
-# training_indexes = random.sample(range(dataset_size), train_size)
-#
-# # Split Data
-# for i in training_indexes:
-#     X_train.append(dataset[i])
-#     X_test.remove(dataset[i])
+
+X_train = []
+X_test = dataset.copy()
+training_indexes = random.sample(range(dataset_size), train_size)
+
+# Split Data
+for i in training_indexes:
+    X_train.append(dataset[i])
+    X_test.remove(dataset[i])
 
 # Separate Data based on class value
 classes = {}
