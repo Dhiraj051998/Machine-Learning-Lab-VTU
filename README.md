@@ -1,1 +1,1 @@
-# Machine-Learning-Lab-VTU
+# Machine Learning Lab VTU
