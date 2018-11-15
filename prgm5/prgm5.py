@@ -27,19 +27,20 @@ print('Size of dataset is : ', dataset_size)
 train_size = int(0.7 * dataset_size)  # 70 % as test data
 
 print(train_size)
-
-X_train = []
-X_test = dataset.copy()
-training_indexes = random.sample(range(dataset_size), train_size)
-
-# Split Data
-for i in training_indexes:
-    X_train.append(dataset[i])
-    X_test.remove(dataset[i])
+X_train = dataset[:500]
+X_test = dataset[500:]
+# X_train = []
+# X_test = dataset.copy()
+# training_indexes = random.sample(range(dataset_size), train_size)
+#
+# # Split Data
+# for i in training_indexes:
+#     X_train.append(dataset[i])
+#     X_test.remove(dataset[i])
 
 # Separate Data based on class value
 classes = {}
-for samples in dataset:
+for samples in X_train:
     last = int(samples[-1])
     if last not in classes:
         classes[last] = []
@@ -78,5 +79,4 @@ for index, key in enumerate(X_test):
     if X_test[index][-1] == X_prediction[index]:
         correct += 1
 
-print(X_prediction)
 print("Accuracy : ", correct / (float(len(X_test))) * 100)
