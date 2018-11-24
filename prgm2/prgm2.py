@@ -25,7 +25,7 @@ def consistent(hypothesis, sample):
 def min_generalization(hypothesis, sample):
     new_hypothesis = list(hypothesis)
     for i, key in enumerate(hypothesis):
-        if not consistent(hypothesis[i:i + 1], sample[i:i + 1]):
+        if not consistent(hypothesis[i], sample[i]):
             new_hypothesis[i] = '?' if hypothesis[i] != '0' else sample[i]
     return [tuple(new_hypothesis)]
 
@@ -47,47 +47,51 @@ def min_specialization(hypothesis, sample, domain):
     return results
 
 
-def candidate_elimination():
-    dataset = []
-    with open('data.csv') as csvfile:
-        lines = csv.reader(csvfile)
-        for row in list(lines)[1:]:
-            dataset.append(tuple(row))
-    print(dataset)
-    domains = get_domains(dataset)
-    domains = domains[:-1]
-    print(domains)
-    # #
-    G = {("?",) * len(domains)}
-    S = {("0",) * len(domains)}
-    k = 0
+dataset = []
+with open('data.csv') as csvfile:
+    lines = csv.reader(csvfile)
+    for row in list(lines)[1:]:
+        dataset.append(tuple(row))
+print(dataset)
+domains = get_domains(dataset)
+domains = domains[:-1]
+print(domains)
+# Initialize G to the set of maximally general hypotheses in H
+G = {("?",) * len(domains)}
+# Initialize S to the set of maximally specific hypotheses in H
+S = {("0",) * len(domains)}
+k = 0
+print("\n G[{0}]:".format(k), G)
+print("\n S[{0}]:".format(k), S)
+# For each training example d, do
+for i in dataset:
+    k += 1
+    attributes, output = i[:-1], i[-1]
+    # If d is a positive example
+    if output == 'yes':
+        # Remove from G any hypotheses inconsistent with d
+        G = {g for g in G if consistent(g, attributes)}
+        # For each hypothesis s in S that is not consistent with d
+        for s in list(S):
+            if not consistent(s, attributes):
+                # Remove s from S
+                S.remove(s)
+                # Add to S all minimal generalizations h of s such that
+                s_plus = min_generalization(s, attributes)
+                # h is consistent with d, and some member of G is more general than h
+                S.update([h for h in s_plus if any([consistent(g, h) for g in G])])
+    else:
+        # Remove from S any hypotheses inconsistent with d
+        S = {s for s in S if not consistent(s, attributes)}
+        for g in list(G):
+            if consistent(g, attributes):
+                G.remove(g)
+                g_minus = min_specialization(g, attributes, domains)
+                G.update([h for h in g_minus if any([consistent(h, s)
+                                                     for s in S])])
+
     print("\n G[{0}]:".format(k), G)
     print("\n S[{0}]:".format(k), S)
-    # # print(G, S)
-    for i in dataset:
-        k += 1
-        attributes, output = i[:-1], i[-1]
-        if output == 'yes':
-            G = {g for g in G if consistent(g, attributes)}
-            for s in list(S):
-                if not consistent(s, attributes):
-                    S.remove(s)
-                    s_plus = min_generalization(s, attributes)
-                    S.update([h for h in s_plus if any([consistent(g, h) for g in G])])
-        else:
-            S = {s for s in S if not consistent(s, attributes)}
-            for g in list(G):
-                if consistent(g, attributes):
-                    G.remove(g)
-                    g_minus = min_specialization(g, attributes, domains)
-                    G.update([h for h in g_minus if any([consistent(h, s)
-                                                         for s in S])])
-
-        print("\n G[{0}]:".format(k), G)
-        print("\n S[{0}]:".format(k), S)
-
-
-candidate_elimination()
 
 """
 Output
