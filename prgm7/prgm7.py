@@ -39,17 +39,14 @@ print(model.edges())
                        CP
 """
 
-X_train = dataset.loc[:200, :]  # Split dataset
-X_test = dataset.loc[201:, :]
-
 model.fit(dataset, estimator=MaximumLikelihoodEstimator)
 
 print('\n Inferencing with Bayesian Network:')
 
 HeartDisease_infer = VariableElimination(model)
 for cpd in model.get_cpds():
-    # print("CPD of {variable}:".format(variable=cpd.variable))
-    # print(cpd)
+    print("CPD of {variable}:".format(variable=cpd.variable))
+    print(cpd)
     print(model.check_model())
 print('\n1.Probability of HeartDisease given Gender = Female')
 q = HeartDisease_infer.query(variables=['HD'], evidence={'GENDER': 1})
