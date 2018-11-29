@@ -22,7 +22,6 @@ count = 0
 for r in range(len(X_test)):
     try:
         wts = np.exp(-np.sum((X_train - X_test[r]) ** 2, axis=1) / (2 * tou ** 2))
-
         W = np.diag(wts)
         factor1 = np.linalg.inv(X_train.T.dot(W).dot(X_train))
         parameters = factor1.dot(X_train.T).dot(W).dot(y_train)
