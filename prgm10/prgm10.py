@@ -36,5 +36,4 @@ y_test = np.array(y_test)
 plt.plot(X_train.squeeze(), y_train, 'o')
 
 plt.plot(X_test.squeeze(), y_test, 'o')
-plt.savefig('image.png', format='png', dpi=250)
 plt.show()

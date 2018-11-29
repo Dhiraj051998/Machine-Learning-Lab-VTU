@@ -1,5 +1,5 @@
 """
-Build an Artificial Neural Network by implementing the Back propagation
+4. Build an Artificial Neural Network by implementing the Back propagation
 algorithm and test the same using appropriate data sets.
 """
 import pandas as pd
@@ -23,10 +23,10 @@ def back_propagation(X_train, w2, layer1_output, layer2_output, actual_output):
     difference = actual_output.T - layer2_output
     delta_output = layer2_output * (1 - layer2_output) * difference
     delta_hidden = layer1_output * (1 - layer1_output) * w2.T.dot(delta_output)
-    deltaW2 = learning_rate * (delta_output.dot(layer1_output.T) / train_size)
-    deltaW1 = learning_rate * (delta_hidden.dot(X_train) / train_size)
+    deltaw2 = learning_rate * (delta_output.dot(layer1_output.T) / train_size)
+    deltaw1 = learning_rate * (delta_hidden.dot(X_train) / train_size)
 
-    return deltaW1, deltaW2
+    return deltaw1, deltaw2
 
 
 def main():
@@ -57,9 +57,9 @@ def main():
 
         layer2_output = sigmoid(w2.dot(layer1_output))
 
-        deltaW1, deltaW2 = back_propagation(X_train, w2, layer1_output, layer2_output, one_hot)
-        w2 = w2 + deltaW2
-        w1 = w1 + deltaW1
+        deltaw1, deltaw2 = back_propagation(X_train, w2, layer1_output, layer2_output, one_hot)
+        w2 = w2 + deltaw2
+        w1 = w1 + deltaw1
 
         if epoch % 1000 == 0:
             loss = compute_loss(layer2_output, one_hot)
