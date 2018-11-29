@@ -1,9 +1,13 @@
+"""
+Build an Artificial Neural Network by implementing the Back propagation
+algorithm and test the same using appropriate data sets.
+"""
 import pandas as pd
 import numpy as np
 
-n_hidden = 20
+n_hidden = 10
 learning_rate = 0.1
-n_epoch = 30000
+n_epoch = 55000
 train_size = 0
 
 
@@ -27,21 +31,24 @@ def back_propagation(X_train, w2, layer1_output, layer2_output, actual_output):
 
 def main():
     global train_size
-    dataset = pd.read_csv('new_dataset.csv')
-    train_size = int(len(dataset) * 0.8)
-    X_train = dataset.iloc[:train_size, 1:-1]
-    y_train = dataset.iloc[:train_size, -1]
+    dataset = pd.read_csv('diabetes.csv')
+    min_data = dataset.min(axis=0)
+    max_data = dataset.max(axis=0)
+    dataset.iloc[:, 0:-1] = (dataset.iloc[:, 0:-1] - min_data[0:-1]) / (max_data[0:-1] - min_data[0:-1])
 
-    X_test = dataset.iloc[train_size:, 1:-1]
-    y_test = dataset.iloc[train_size:, -1]
+    train_size = int(len(dataset) * 0.8)
+    no_of_attr = dataset.shape[1] - 1
+
+    X_train = dataset.iloc[:train_size, :-1]
+    y_train = dataset.iloc[:train_size, -1]
 
     no_of_classes = len(np.unique(dataset.iloc[:, -1]))
     print(no_of_classes)
 
     one_hot = np.zeros((train_size, no_of_classes))
     one_hot[np.arange(train_size), y_train] = 1
-
-    w1 = np.random.random((n_hidden, 7))
+    print(one_hot)
+    w1 = np.random.random((n_hidden, no_of_attr))
 
     w2 = np.random.random((no_of_classes, n_hidden))
 
@@ -51,19 +58,18 @@ def main():
         layer2_output = sigmoid(w2.dot(layer1_output))
 
         deltaW1, deltaW2 = back_propagation(X_train, w2, layer1_output, layer2_output, one_hot)
-
         w2 = w2 + deltaW2
         w1 = w1 + deltaW1
 
-        if epoch % 100 == 0:
+        if epoch % 1000 == 0:
             loss = compute_loss(layer2_output, one_hot)
             print('loss in {0}th epoch is {1}'.format(epoch, loss))
 
     layer1_output = sigmoid(w1.dot(X_train.T))
     final = sigmoid(w2.dot(layer1_output))
-    print(final)
+
     prediction = final.argmax(axis=0)
-    prediction = np.array(prediction).astype(int)
+    prediction = np.array(prediction)
     print(prediction)
     count = 0
     for i in range(train_size):

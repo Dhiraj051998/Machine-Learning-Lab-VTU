@@ -1,218 +1,104 @@
-# Backprop on the Seeds Dataset
 from random import seed
-from random import randrange
-from random import random
-from csv import reader
-from math import exp
+import pandas as pd
+import numpy as np
 
 
-# Load a CSV file
-def load_csv(filename):
-    dataset = list()
-    with open(filename, 'r') as file:
-        csv_reader = reader(file)
-        for row in csv_reader:
-            if not row:
-                continue
-            dataset.append(row)
-    return dataset
+def split_dataset(dataset, train_perc=0.8, test_perc=0.2):
+    np.random.shuffle(dataset)
+    data_len = len(dataset)
+    train_index = int(data_len * train_perc)  # last index from the dataset array that will go into training
+
+    train = dataset[:train_index, :]
+    test = dataset[train_index:, :]
+    return (train, test)
 
 
-# Convert string column to float
-def str_column_to_float(dataset, column):
-    for row in dataset:
-        row[column] = float(row[column].strip())
+def sigmoid(activation):
+    return 1.0 / (1.0 + np.exp(-activation))
 
 
-# Convert string column to integer
-def str_column_to_int(dataset, column):
-    class_values = [row[column] for row in dataset]
-    unique = set(class_values)
-    lookup = dict()
-    for i, value in enumerate(unique):
-        lookup[value] = i
-    for row in dataset:
-        row[column] = lookup[row[column]]
-    return lookup
+def compute_loss(prediction, actual):
+    # return -sum(actual*log(prediction))
+    return 0.5 * np.sum((actual.T - prediction) * (actual.T - prediction))
 
 
-# Find the min and max values for each column
-def dataset_minmax(dataset):
-    minmax = list()
-    stats = [[min(column), max(column)] for column in zip(*dataset)]
-    return stats
+def back_prop(train_X, W1, W2, layer1_output, layer2_output, actual_output):
+    # find error in output unit
+    difference = actual_output.T - layer2_output
+    delta_output = layer2_output * (1 - layer2_output) * difference
+    delta_hidden = layer1_output * (1 - layer1_output) * W2.T.dot(delta_output)
+    deltaW2 = lr * (delta_output.dot(layer1_output.T) / n_train)
+    deltaW1 = lr * (delta_hidden.dot(train_X) / n_train)
+
+    return (deltaW1, deltaW2)
 
 
-# Rescale dataset columns to the range 0-1
-def normalize_dataset(dataset, minmax):
-    for row in dataset:
-        for i in range(len(row) - 1):
-            row[i] = (row[i] - minmax[i][0]) / (minmax[i][1] - minmax[i][0])
-
-
-# Split a dataset into k folds
-def cross_validation_split(dataset, n_folds):
-    dataset_split = list()
-    dataset_copy = list(dataset)
-    fold_size = int(len(dataset) / n_folds)
-    for i in range(n_folds):
-        fold = list()
-        while len(fold) < fold_size:
-            index = randrange(len(dataset_copy))
-            fold.append(dataset_copy.pop(index))
-        dataset_split.append(fold)
-    return dataset_split
-
-
-# Calculate accuracy percentage
-def accuracy_metric(actual, predicted):
-    correct = 0
-    for i in range(len(actual)):
-        if actual[i] == predicted[i]:
-            correct += 1
-    return correct / float(len(actual)) * 100.0
-
-
-# Evaluate an algorithm using a cross validation split
-def evaluate_algorithm(dataset, algorithm, n_folds, *args):
-    folds = cross_validation_split(dataset, n_folds)
-    scores = list()
-    for fold in folds:
-        train_set = list(folds)
-        train_set.remove(fold)
-        train_set = sum(train_set, [])
-        test_set = list()
-        for row in fold:
-            row_copy = list(row)
-            test_set.append(row_copy)
-            row_copy[-1] = None
-        predicted = algorithm(train_set, test_set, *args)
-        actual = [row[-1] for row in fold]
-        accuracy = accuracy_metric(actual, predicted)
-        scores.append(accuracy)
-    return scores
-
-
-# Calculate neuron activation for an input
-def activate(weights, inputs):
-    activation = weights[-1]
-    for i in range(len(weights) - 1):
-        activation += weights[i] * inputs[i]
-    return activation
-
-
-# Transfer neuron activation
-def transfer(activation):
-    return 1.0 / (1.0 + exp(-activation))
-
-
-# Forward propagate input to a network output
-def forward_propagate(network, row):
-    inputs = row
-    for layer in network:
-        new_inputs = []
-        for neuron in layer:
-            activation = activate(neuron['weights'], inputs)
-            neuron['output'] = transfer(activation)
-            new_inputs.append(neuron['output'])
-        inputs = new_inputs
-    return inputs
-
-
-# Calculate the derivative of an neuron output
-def transfer_derivative(output):
-    return output * (1.0 - output)
-
-
-# Backpropagate error and store in neurons
-def backward_propagate_error(network, expected):
-    for i in reversed(range(len(network))):
-        layer = network[i]
-        errors = list()
-        if i != len(network) - 1:
-            for j in range(len(layer)):
-                error = 0.0
-                for neuron in network[i + 1]:
-                    error += (neuron['weights'][j] * neuron['delta'])
-                errors.append(error)
-        else:
-            for j in range(len(layer)):
-                neuron = layer[j]
-                errors.append(expected[j] - neuron['output'])
-        for j in range(len(layer)):
-            neuron = layer[j]
-            neuron['delta'] = errors[j] * transfer_derivative(neuron['output'])
-
-
-# Update network weights with error
-def update_weights(network, row, l_rate):
-    for i in range(len(network)):
-        inputs = row[:-1]
-        if i != 0:
-            inputs = [neuron['output'] for neuron in network[i - 1]]
-        for neuron in network[i]:
-            for j in range(len(inputs)):
-                neuron['weights'][j] += l_rate * neuron['delta'] * inputs[j]
-            neuron['weights'][-1] += l_rate * neuron['delta']
-
-
-# Train a network for a fixed number of epochs
-def train_network(network, train, l_rate, n_epoch, n_outputs):
+def train_network(train_X, train_y):
+    n_input = train_X.shape[1]  # the number of columns in the training data
+    W1 = np.random.random((n_hidden, n_input))
+    W2 = np.random.random((num_classes, n_hidden))
     for epoch in range(n_epoch):
-        for row in train:
-            outputs = forward_propagate(network, row)
-            expected = [0 for i in range(n_outputs)]
-            expected[row[-1]] = 1
-            backward_propagate_error(network, expected)
-            update_weights(network, row, l_rate)
+        layer1_output = sigmoid(W1.dot(train_X.T))
+        layer2_output = sigmoid(W2.dot(layer1_output))
+
+        (deltaW1, deltaW2) = back_prop(train_X, W1, W2, layer1_output, layer2_output, train_y)
+        W2 = W2 + deltaW2
+        W1 = W1 + deltaW1
+        if epoch % 1000 == 0:
+            loss = compute_loss(layer2_output, train_y)
+            print(str.format('Loss in {0}th epoch is {1}', epoch, loss))
+
+    return (W1, W2)
 
 
-# Initialize a network
-def initialize_network(n_inputs, n_hidden, n_outputs):
-    network = list()
-    hidden_layer = [{'weights': [random() for i in range(n_inputs + 1)]} for i in range(n_hidden)]
-    network.append(hidden_layer)
-    output_layer = [{'weights': [random() for i in range(n_hidden + 1)]} for i in range(n_outputs)]
-    network.append(output_layer)
-    return network
+def evaluate(test_X, test_y, params):
+    (W1, W2) = params
+    layer1_output = sigmoid(W1.dot(test_X.T))
+    final = sigmoid(W2.dot(layer1_output))
+    print(final)
+    prediction = final.argmax(axis=0)
+    print("Prediction ==>>")
+    print(prediction)
+    print(prediction.shape)
+    return np.sum(prediction == test_y) / len(test_y)
 
 
-# Make a prediction with a network
-def predict(network, row):
-    outputs = forward_propagate(network, row)
-    return outputs.index(max(outputs))
+def convert_to_OH(data, num_classes):
+    # create an array to store the one hot vectors
+    one_hot = np.zeros((len(data), num_classes))
+    one_hot[np.arange(len(data)), data - 1] = 1
+    return one_hot
 
 
-# Backpropagation Algorithm With Stochastic Gradient Descent
-def back_propagation(train, test, l_rate, n_epoch, n_hidden):
-    n_inputs = len(train[0]) - 1
-    n_outputs = len(set([row[-1] for row in train]))
-    network = initialize_network(n_inputs, n_hidden, n_outputs)
-    train_network(network, train, l_rate, n_epoch, n_outputs)
-    predictions = list()
-    for row in test:
-        prediction = predict(network, row)
-        predictions.append(prediction)
-    return (predictions)
-
-
-# Test Backprop on Seeds dataset
-seed(1)
+np.random.seed(0)
 # load and prepare data
-filename = 'dataset.csv'
-dataset = load_csv(filename)
-for i in range(len(dataset[0]) - 1):
-    str_column_to_float(dataset, i)
-# convert class column to integers
-str_column_to_int(dataset, len(dataset[0]) - 1)
-# normalize input variables
-minmax = dataset_minmax(dataset)
-normalize_dataset(dataset, minmax)
+# filename = 'seeds_dataset.csv'
+filename = 'diabetes.csv'
+df = pd.read_csv(filename, dtype=np.float64)
+dataset = np.array(df)
+
+# normalize data
+min_data = dataset.min(axis=0)
+max_data = dataset.max(axis=0)
+print(min_data, max_data)
+# normalize all fields except the last column(class)
+dataset[:, 0:-1] = (dataset[:, 0:-1] - min_data[0:-1]) / (max_data[0:-1] - min_data[0:-1])
+print(dataset)
+(train, test) = split_dataset(dataset)
+# train = dataset
+n_train = len(train)
+n_test = len(test)
+
 # evaluate algorithm
-n_folds = 5
-l_rate = 0.3
-n_epoch = 500
-n_hidden = 5
-scores = evaluate_algorithm(dataset, back_propagation, n_folds, l_rate, n_epoch, n_hidden)
-print('Scores: %s' % scores)
-print('Mean Accuracy: %.3f%%' % (sum(scores) / float(len(scores))))
+lr = 0.05
+n_epoch = 30000
+
+# determine the number of classes
+num_classes = len(np.unique(dataset[:, -1]))
+train_one_hot = convert_to_OH(train[:, -1].astype(int), num_classes)
+
+n_hidden = 20
+
+params = train_network(train[:, :-1], train_one_hot)
+accuracy = evaluate(test[:, :-1], test[:, -1], params) * 100
+print('Mean Accuracy: %.3f%%' % accuracy)
