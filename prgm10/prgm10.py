@@ -30,7 +30,7 @@ for r in range(len(X_test)):
         count += 1
     except Exception as e:
         print(e)
-        pass
+
 print(len(y_test))
 y_test = np.array(y_test)
 plt.plot(X_train.squeeze(), y_train, 'o')

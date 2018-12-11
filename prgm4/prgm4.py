@@ -31,7 +31,7 @@ def back_propagation(X_train, w2, layer1_output, layer2_output, actual_output):
 
 def main():
     global train_size
-    dataset = pd.read_csv('diabetes.csv')
+    dataset = pd.read_csv('diabetes.csv', header=None)
     min_data = dataset.min(axis=0)
     max_data = dataset.max(axis=0)
     dataset.iloc[:, 0:-1] = (dataset.iloc[:, 0:-1] - min_data[0:-1]) / (max_data[0:-1] - min_data[0:-1])
